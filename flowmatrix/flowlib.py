@@ -27,8 +27,8 @@ def matrix_value(template, client, a, b):
     return 0
 
 
-def get_data():
-    client = DataFrameClient("erods-ds-1.u-ga.fr", "8086", "", "", "telegraf")
+def get_data(influxdb_host,influxdb_port):
+    client = DataFrameClient(influxdb_host, influxdb_port, "", "", "telegraf")
 
     df = pd.DataFrame(data=list(range(30)))
 
@@ -41,8 +41,8 @@ def get_data():
     return matrix.to_dict()
 
 
-def get_data_full():
-    client = DataFrameClient("erods-ds-1.u-ga.fr", "8086", "", "", "telegraf")
+def get_data_full(influxdb_host,influxdb_port):
+    client = DataFrameClient(influxdb_host, influxdb_port, "", "", "telegraf")
 
     df = pd.DataFrame(data=list(range(30)))
 

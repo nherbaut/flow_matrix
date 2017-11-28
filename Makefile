@@ -1,4 +1,4 @@
-all : clean build buildp2
+all : clean build docker
 
 
 clean: clean-build clean-pyc 
@@ -20,10 +20,8 @@ install: clean
 		python setup.py install
 
 build:
-	    .venv3/bin/python setup.py bdist_egg
+	    .venv3/bin/python setup.py bdist_egg 
 
-buildp2:
-	    .venv2/bin/python setup.py bdist_egg
 
 docker:
 		docker build . -t nherbaut/flowmatrix

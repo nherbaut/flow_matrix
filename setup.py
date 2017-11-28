@@ -4,12 +4,15 @@ from setuptools import find_packages
 
 setup(
     name='Flow Matrix Web page',
+    package=["flowmatrix"],
     version='0.0.3',
     description='print collected flow matrices from influxdb',
     author='Nicolas Herbaut',
     author_email='nicolas.herbaut@univ-grenoble-alpes.fr',
     url='https://nextnet.top',
     scripts=['bin/flow-matrix'],
+    include_package_data=True,
+    zip_safe=False,
     install_requires=[
         "chardet==3.0.4",
         "click==6.7",
