@@ -30,7 +30,9 @@
         <th scope="row">{{ key1 }}</th>
         {% for key2 in data %}
 
-        <td>{{data[key2][key1]}}</td>
+
+        <td bgcolor="{{ data[key2][key1][0] }}">{{data[key2][key1][1]}}</td>
+
 
         {% endfor %}
     </tr>
