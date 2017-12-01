@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from flask import Flask, render_template
+from flowmatrix.flowlib import get_data_full, get_data
+import argparse
+import os
+
+app = Flask(__name__)
+app.debug = True
+app.autoescape = False
+
+parser = argparse.ArgumentParser(description='Start Flask app for flow matrix')
+parser.add_argument('--influxdb_host', type=str, help='hostname or IP for the influxdb server', required=True)
+parser.add_argument('--flow_matrix_port', type=int, help='the port on which to run the flow_matrix', default=5011)
+parser.add_argument('--influxdb_port', type=str, help='port of the influxdb server', default="8086")
+parser.add_argument('--influxdb_database', type=str, help='database to used in the influxdb server', default="telegraf")
+
+args = parser.parse_args()
+
+
+@app.route("/")
+def data():
+    matrix, svg = get_data(args.influxdb_host, args.influxdb_port)
+    return render_template('index.html', data=matrix.to_dict(), svg=svg)
+
+
+@app.route("/full")
+def data_full():
+    return render_template('index.html', data=get_data_full(args.influxdb_host, args.influxdb_port).to_dict())
+
+
+app.template_folder = "/usr/local/lib/python3.6/site-packages/Flow_Matrix_Web_page-0.0.3-py3.6.egg/flowmatrix/templates/"
+app.run(host="0.0.0.0", port=args.flow_matrix_port)

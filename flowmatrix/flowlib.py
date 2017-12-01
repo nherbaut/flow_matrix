@@ -1,7 +1,13 @@
 from influxdb import DataFrameClient
 import pandas as pd
-from colour import Color
 import numpy as np
+import networkx as nx
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+import io
+from colour import Color
 
 white = Color("white")
 to_blue = list(white.range_to(Color("blue"), 10))
@@ -13,9 +19,9 @@ query_template_full = """SELECT last("bytes") as value FROM "telegraf"."autogen"
 
 def sizeof_get_color(num, matrix_mean=0, std_dev=999999999999):
     if num < matrix_mean:
-        col = to_blue[min(int(abs(num - matrix_mean) / std_dev), len(to_blue)-1)]
+        col = to_blue[min(int(abs(num - matrix_mean) / std_dev), len(to_blue) - 1)]
     else:
-        col = to_red[min(int(abs(num - matrix_mean) / std_dev), len(to_red)-1)]
+        col = to_red[min(int(abs(num - matrix_mean) / std_dev), len(to_red) - 1)]
 
     return col.get_web()
 
@@ -51,16 +57,20 @@ def get_data(influxdb_host, influxdb_port, formatter=sizeof_fmt):
         columns=apps,
         orient="index")
 
-    matrix_mean = np.mean((matrix!=0).mean())
+    print(matrix.to_csv())
+
+    matrix_mean = np.mean((matrix != 0).mean())
     matrix_std = np.mean((matrix.std()))
 
     def custo_formatter(v):
-        col=sizeof_get_color(v,matrix_mean,matrix_std )
-        return (col,formatter(v))
+        col = sizeof_get_color(v, matrix_mean, matrix_std)
+        return (col, formatter(v))
+
+    svg = get_svg(matrix)
 
     matrix = matrix.applymap(custo_formatter)
 
-    return matrix
+    return matrix, svg
 
 
 def get_data_full(influxdb_host, influxdb_port, formatter=sizeof_fmt):
@@ -74,5 +84,62 @@ def get_data_full(influxdb_host, influxdb_port, formatter=sizeof_fmt):
         columns=apps,
         orient="index")
 
+    svg = get_svg(matrix)
+
     matrix.applymap(formatter)
-    return matrix
+    return matrix, svg
+
+
+def get_svg(d):
+    black = Color("black")
+    to_red = list(black.range_to(Color("red"), 5))
+    to_blue = list(black.range_to(Color("blue"), 5))
+
+    d.apply(lambda x: 1 / x)
+
+    def sizeof_get_color(num, matrix_mean=0, std_dev=999999999999):
+        if num < matrix_mean:
+            col = to_blue[min(int(abs(num - matrix_mean) / std_dev), len(to_blue) - 1)]
+        else:
+            col = to_red[min(int(abs(num - matrix_mean) / std_dev), len(to_red) - 1)]
+        return col.get_web(), (num - matrix_mean) / std_dev
+
+    def type_to_col(name_full):
+        name = name_full.split("_")[-1]
+        if name == "cass":
+            return "green"
+        if name == "zoo":
+            return "gray"
+        if name == "kafka":
+            return "blue"
+        if name == "spark":
+            return "red"
+
+    upper = d.where(~np.tril(np.ones(d.shape)).astype(np.bool))
+    bottom = d.transpose().where(~np.tril(np.ones(d.shape)).astype(np.bool))
+    bc = upper + bottom
+    bc = bc.where(bc != 0)
+
+    g = nx.Graph()
+
+    mmean = np.mean(bc.mean())
+    mstd = np.mean(bc.std())
+
+    for row, array in bc.items():
+        for column in array.index:
+            if not pd.isnull(array[column]):
+                g.add_edge(row, column, length=array[column], type=row)
+
+    values = [type_to_col(node) for node in g.nodes()]
+    node_labels = {node: node for node in g.nodes()}
+    values_edge_color = [sizeof_get_color(e[2]["length"], mmean, mstd)[0] for e in g.edges(data=True)]
+    values_edge_width = [2 * sizeof_get_color(e[2]["length"], mmean, mstd)[1] for e in g.edges(data=True)]
+
+    nx.draw(g, with_labels=True, node_color=values, edge_color=values_edge_color, width=values_edge_width,
+            labels=node_labels)
+    # plt.show()
+    s = io.StringIO()
+    plt.legend(numpoints=1)
+    plt.savefig(s, format="svg")
+    plt.cla()
+    return s.getvalue()

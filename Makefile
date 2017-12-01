@@ -1,4 +1,4 @@
-all : clean build docker-build docker-push
+all : clean build docker-build 
 
 
 clean: clean-build clean-pyc 

@@ -10,7 +10,7 @@ setup(
     author='Nicolas Herbaut',
     author_email='nicolas.herbaut@univ-grenoble-alpes.fr',
     url='https://nextnet.top',
-    scripts=['flow-matrix'],
+    scripts=['bin/flow-matrix'],
     include_package_data=True,
     zip_safe=False,
     install_requires=[
