@@ -27,7 +27,8 @@ def data():
 
 @app.route("/full")
 def data_full():
-    return render_template('index.html', data=get_data_full(args.influxdb_host, args.influxdb_port).to_dict())
+    matrix, svg = get_data_full(args.influxdb_host, args.influxdb_port)
+    return render_template('index.html', data=matrix.to_dict(), svg=svg)
 
 
 app.template_folder = "/usr/local/lib/python3.6/site-packages/Flow_Matrix_Web_page-0.0.3-py3.6.egg/flowmatrix/templates/"

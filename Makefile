@@ -1,4 +1,4 @@
-all : clean build docker-build 
+all : clean build docker-build
 
 
 clean: clean-build clean-pyc 
@@ -26,5 +26,5 @@ build:
 docker-build:
 		docker build . -t nherbaut/flowmatrix
 
-docker-push:
+push:
 	    docker push nherbaut/flowmatrix
