@@ -50,7 +50,7 @@ def matrix_value(template, client, a, b):
     return 0
 
 
-def get_data(influxdb_host, influxdb_port, formatter=sizeof_fmt):
+def get_flow_matrix(influxdb_host, influxdb_port):
     client = DataFrameClient(influxdb_host, influxdb_port, "", "", "telegraf")
 
     apps = [app["value"] for app in list(client.query('SHOW TAG VALUES ON "telegraf" WITH KEY="host_app_src"'))[0] if
@@ -60,9 +60,10 @@ def get_data(influxdb_host, influxdb_port, formatter=sizeof_fmt):
         items=[(a, [matrix_value(query_template, client, a, b) for b in apps]) for a in apps],
         columns=apps,
         orient="index")
+    return matrix
 
-    print(matrix.to_csv())
 
+def format_flow_matrix(matrix, formatter=sizeof_fmt):
     matrix_mean = np.mean((matrix != 0).mean())
     matrix_std = np.mean((matrix.std()))
 
@@ -70,11 +71,13 @@ def get_data(influxdb_host, influxdb_port, formatter=sizeof_fmt):
         col = sizeof_get_color(v, matrix_mean, matrix_std)
         return (col, formatter(v))
 
-    svg = get_svg(matrix)
-
     matrix = matrix.applymap(custo_formatter)
 
-    return matrix, svg
+    return matrix
+
+
+def get_flow_matrix_svg(matrix):
+    return get_svg(matrix)
 
 
 def get_data_full(influxdb_host, influxdb_port, formatter=sizeof_fmt):
@@ -126,7 +129,8 @@ def get_svg(d):
             return "red"
         else:
             return "red"
-#Todo adapt for FULL page
+
+    # Todo adapt for FULL page
     upper = d.where(~np.tril(np.ones(d.shape)).astype(np.bool))
     bottom = d.transpose().where(~np.tril(np.ones(d.shape)).astype(np.bool))
     bc = upper + bottom

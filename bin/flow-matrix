@@ -3,7 +3,7 @@
 
 from flask import Flask
 from jinja2 import Environment, PackageLoader
-from flowmatrix.flowlib import get_data_full, get_data
+from flowmatrix.flowlib import *
 import argparse
 import os
 
@@ -22,15 +22,19 @@ args = parser.parse_args()
 e = Environment(loader=PackageLoader("flowmatrix", "../flowmatrix/templates/"))
 
 
+@app.route("/api/containers")
+def get_containers_data():
+    matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
+    print(matrix)
+    return ""
+
+
 @app.route("/")
 def data():
-    matrix, svg = get_data(args.influxdb_host, args.influxdb_port)
-    return e.get_template("index.html").render(data=matrix.to_dict(), svg=svg)
+    matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
+    svg = get_flow_matrix_svg(matrix)
+    formattted_matrix = format_flow_matrix(matrix)
+    return e.get_template("index.html").render(data=formattted_matrix.to_dict(), svg=svg)
 
-
-@app.route("/full")
-def data_full():
-    matrix, svg = get_data_full(args.influxdb_host, args.influxdb_port)
-    return e.get_template("index.html").render(data=matrix.to_dict(), svg=svg)
 
 app.run(host="0.0.0.0", port=args.flow_matrix_port)
