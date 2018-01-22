@@ -20,11 +20,11 @@ install: clean
 		python setup.py install
 
 build:
-	    .venv3/bin/python setup.py bdist_egg 
+		.venv/bin/python setup.py bdist_wheel
 
 
 docker-build:
 		docker build . -t nherbaut/flowmatrix
 
 push:
-	    docker push nherbaut/flowmatrix
+		docker push nherbaut/flowmatrix
