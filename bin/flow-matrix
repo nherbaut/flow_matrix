@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flask import Flask, request
+from flask import Flask, request, Response
 from jinja2 import Environment, PackageLoader, Template
 from flowmatrix.flowlib import *
 import argparse
@@ -40,38 +40,50 @@ def get_antiaffinity_rules(param):
             if lfilter(data):
                 res.append(app)
 
-    return "\n".join(res)
+    res = "\n".join(res)
+    return Response(res, mimetype='text/yaml')
 
 
 @app.route("/api/containers")
 def get_containers_data():
-    matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
-    return Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
-        settings=["%s_%s %s" % (k.split("_")[0], k.split("_")[1], k.split("_")[1]) for k in list(matrix.keys())])
+    res = []
+    with open(args.pillar) as f:
+        pillar = yaml.load(f.read())
+        for name, conf in pillar["placement"].items():
+            for i in conf.get("instances",[]):
+                res.append((i["name"], name))
+
+        res = "\n".join(["%s\t%s" % item for item in res])
+        return Response(res, mimetype='text/yaml')
+    return Response("failed to load pillar data", status=404)
 
 
 @app.route("/api/flows")
 def get_containers_flow():
     matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
-    values = [(a, b, matrix[a][b]) for a in matrix.keys() for b in matrix.keys()]
-    return Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
+    values = [(a.split("_")[1], b.split("_")[1], matrix[a][b]) for a in matrix.keys() for b in matrix.keys()]
+    res = Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
         settings=["%s\t%s\t%s" % v for v in values if v[0] != v[1]])
+    return Response(res, mimetype='text/yaml')
 
 
 @app.route("/api/hosts")
 def get_hosts():
     matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
     values = set([k.split("_")[0] for k in matrix.keys()])
-    return Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
+    res = Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
         settings=["%s" % v for v in values])
+    return Response(res, mimetype='text/yaml')
 
 
 @app.route("/api/mapping")
 def get_mapping():
     matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
-    values = set([(k, k.split("_")[0]) for k in matrix.keys()])
-    return Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
+    values = set([(k.split("_")[1], k.split("_")[0]) for k in matrix.keys()])
+
+    res = Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
         settings=["%s\t%s" % v for v in values])
+    return Response(res, mimetype='text/yaml')
 
 
 @app.route("/")
@@ -79,7 +91,8 @@ def data():
     matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
     svg = get_flow_matrix_svg(matrix)
     formattted_matrix = format_flow_matrix(matrix)
-    return e.get_template("index.html").render(data=formattted_matrix.to_dict(), svg=svg)
+    res = e.get_template("index.html").render(data=formattted_matrix.to_dict(), svg=svg)
+    return Response(res, mimetype='text/html')
 
 
 app.run(host="0.0.0.0", port=args.flow_matrix_port)
