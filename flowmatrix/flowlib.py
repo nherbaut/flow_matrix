@@ -118,17 +118,8 @@ def get_svg(d):
             return black.get_web(), 1
 
     def type_to_col(name_full):
-        name = name_full.split("_")[-1]
-        if name == "cass":
-            return "green"
-        elif name == "zoo":
-            return "gray"
-        elif name == "kafka":
-            return "blue"
-        elif name == "spark":
-            return "red"
-        else:
-            return "red"
+        name = name_full.split("_")[0]
+        return Color(rgb=(hash("r" + name) % 256 / 255, hash("g" + name) % 256 / 255, hash("b" + name) % 256 / 255))
 
     # Todo adapt for FULL page
     upper = d.where(~np.tril(np.ones(d.shape)).astype(np.bool))
@@ -146,7 +137,7 @@ def get_svg(d):
             if not pd.isnull(array[column]):
                 g.add_edge(row, column, length=array[column], type=row)
 
-    values = [type_to_col(node) for node in g.nodes()]
+    values = [type_to_col(node).hex for node in g.nodes()]
     node_labels = {node: node for node in g.nodes()}
     values_edge_color = [sizeof_get_color(e[2]["length"], mmean, mstd)[0] for e in g.edges(data=True)]
     values_edge_width = [2 * sizeof_get_color(e[2]["length"], mmean, mstd)[1] for e in g.edges(data=True)]
