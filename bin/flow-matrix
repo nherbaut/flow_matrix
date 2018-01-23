@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flask import Flask
-from jinja2 import Environment, PackageLoader
+from flask import Flask, request
+from jinja2 import Environment, PackageLoader, Template
 from flowmatrix.flowlib import *
 import argparse
+import yaml
 import os
 
 app = Flask(__name__)
@@ -16,17 +17,61 @@ parser.add_argument('--influxdb_host', type=str, help='hostname or IP for the in
 parser.add_argument('--flow_matrix_port', type=int, help='the port on which to run the flow_matrix', default=5011)
 parser.add_argument('--influxdb_port', type=str, help='port of the influxdb server', default="8086")
 parser.add_argument('--influxdb_database', type=str, help='database to used in the influxdb server', default="telegraf")
+parser.add_argument('--pillar', type=str, help='The path to the pillar used for configuring the stack',
+                    default="/opt/flow-matrix/placement.sls")
 
 args = parser.parse_args()
 
 e = Environment(loader=PackageLoader("flowmatrix", "../flowmatrix/templates/"))
 
 
+@app.route("/api/app_param/<param>")
+def get_antiaffinity_rules(param):
+    res = []
+    afilter = request.args.get('is')
+    if afilter is None:
+        lfilter = lambda x: x.get(param, False)
+    else:
+        lfilter = lambda x: x.get(param, None) is not None and (str(x.get(param)) == afilter or x.get(param) == afilter)
+
+    with open(args.pillar) as f:
+        conf = yaml.load(f.read())
+        for app, data in conf["placement"].items():
+            if lfilter(data):
+                res.append(app)
+
+    return "\n".join(res)
+
+
 @app.route("/api/containers")
 def get_containers_data():
     matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
-    print(matrix)
-    return ""
+    return Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
+        settings=["%s_%s %s" % (k.split("_")[0], k.split("_")[1], k.split("_")[1]) for k in list(matrix.keys())])
+
+
+@app.route("/api/flows")
+def get_containers_flow():
+    matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
+    values = [(a, b, matrix[a][b]) for a in matrix.keys() for b in matrix.keys()]
+    return Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
+        settings=["%s\t%s\t%s" % v for v in values if v[0] != v[1]])
+
+
+@app.route("/api/hosts")
+def get_hosts():
+    matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
+    values = set([k.split("_")[0] for k in matrix.keys()])
+    return Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
+        settings=["%s" % v for v in values])
+
+
+@app.route("/api/mapping")
+def get_mapping():
+    matrix = get_flow_matrix(args.influxdb_host, args.influxdb_port)
+    values = set([(k, k.split("_")[0]) for k in matrix.keys()])
+    return Template("""{% for s in settings %}{{s}}\n{% endfor %}""").render(
+        settings=["%s\t%s" % v for v in values])
 
 
 @app.route("/")
