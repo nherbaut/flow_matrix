@@ -15,7 +15,7 @@ app.autoescape = False
 parser = argparse.ArgumentParser(description='Start Flask app for flow matrix')
 parser.add_argument('--influxdb_host', type=str, help='hostname or IP for the influxdb server', required=True)
 parser.add_argument('--flow_matrix_port', type=int, help='the port on which to run the flow_matrix', default=5011)
-parser.add_argument('--influxdb_port', type=str, help='port of the influxdb server', default="8086")
+parser.add_argument('--influxdb_port', type=str, help='port of the influxdb server', default="8186")
 parser.add_argument('--influxdb_database', type=str, help='database to used in the influxdb server', default="telegraf")
 parser.add_argument('--pillar', type=str, help='The path to the pillar used for configuring the stack',
                     default="/opt/flow-matrix/placement.sls")
@@ -65,7 +65,8 @@ def get_containers_flow():
     res = []
     for a in matrix.keys():
         for b in matrix.keys():
-            res.append("%s\t%s\t%s\n" % (a.split("_")[1], b.split("_")[1], matrix[a][b]))
+            if a != b:
+                res.append("%s\t%s\t%s\n" % (a.split("_")[1], b.split("_")[1], matrix[a][b]))
     return Response(res, mimetype='text/yaml')
 
 

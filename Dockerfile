@@ -5,4 +5,4 @@ RUN pip install -r /tmp/requirements.txt
 COPY ./dist/*.whl /tmp
 RUN pip install /tmp/*.whl
 EXPOSE 5011
-CMD flow-matrix --influxdb_host $INFLUX_DB_HOST 
+CMD flow-matrix --influxdb_host $INFLUX_DB_HOST --influxdb_port $INFLUX_DB_PORT
