@@ -6,16 +6,13 @@ import matplotlib
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+from hook import *
 import io
 from colour import Color
 
 white = Color("white")
 to_blue = list(white.range_to(Color("blue"), 10))
 to_red = list(white.range_to(Color("red"), 10))
-
-query_template = """SELECT last("bytes") as value FROM "telegraf"."autogen"."nftables" WHERE time > now() - 1h AND "host_app_dst"='%s' AND "host_app_src"='%s' GROUP BY time(10w) FILL(null)"""
-query_template_full = """SELECT last("bytes") as value FROM "telegraf"."autogen"."nftables" WHERE time > now() - 1h AND "host_app_dst_port"='%s' AND "host_app_src"='%s' GROUP BY time(10w) FILL(null)"""
 
 
 def sizeof_get_color(num, matrix_mean=0, std_dev=999999999999):
