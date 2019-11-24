@@ -22,5 +22,5 @@ requests==2.18.4
 six==1.11.0
 urllib3==1.22
 Werkzeug==0.12.2
-PyYAML==3.12
+PyYAML==5.1
 flask-swagger==0.2.13
